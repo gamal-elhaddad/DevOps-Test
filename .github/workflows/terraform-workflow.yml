@@ -39,13 +39,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Approval Step
-      id: approval
-      run: echo "Please manually approve the apply step in the GitHub Actions UI."
-      
+    - uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ secrets.GITHUB_TOKEN }}
+        approvers: gamal-elhaddad
+        minimum-approvals: 1
+        issue-title: "Approve Terraform Apply"
+        issue-body: "Please approve or deny the apply step for the Terraform plan."  
+
   terraform-apply:
     name: Terraform Apply
-    needs: terraform-plan
+    needs: wait-for-approval
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.approved == 'true' }}
 
