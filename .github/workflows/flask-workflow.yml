@@ -1,9 +1,9 @@
 name: Deploy flask-app
 
-on:
-  push:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
 
 env:
   AWS_REGION: me-central-1
