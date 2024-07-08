@@ -9,7 +9,7 @@ env:
   AWS_REGION: me-central-1
   EKS_CLUSTER_NAME: EKS-test
   KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}  
-  ECR_REPOSITORY: flask-dev-repo
+  ECR_REPOSITORY: flask-dev-repo  
 
 permissions:
   contents: read
@@ -50,9 +50,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Instal envsubst
+    - name: Install envsubst
       run: |
-        sudo apt-get install gettext-base
+        sudo apt-get install -y gettext-base
    
     - name: Install kubectl
       uses: azure/setup-kubectl@v2.0
@@ -78,7 +78,7 @@ jobs:
         aws-region: ${{ env.AWS_REGION }} 
 
     - name: Update kubeconfig
-      run: aws eks --region me-central-1 update-kubeconfig --name EKS-test   
+      run: aws eks --region me-central-1 update-kubeconfig --name $EKS_CLUSTER_NAME     
 
     - name: Login to Amazon ECR    
       id: login-ecr
@@ -93,6 +93,7 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+      shell: /usr/bin/bash -e {0}
 
     - name: Deploy to Kubernetes Cluster
       env:
