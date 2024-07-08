@@ -33,7 +33,16 @@ jobs:
       run: terraform plan -out=tfplan
       working-directory: ./terraform
 
+  wait-for-approval:
+    name: Wait for Approval
+    needs: terraform-plan
+    runs-on: ubuntu-latest
 
+    steps:
+    - name: Approval Step
+      id: approval
+      run: echo "Please manually approve the apply step in the GitHub Actions UI."
+      
   terraform-apply:
     name: Terraform Apply
     needs: terraform-plan
