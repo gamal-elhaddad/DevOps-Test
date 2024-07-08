@@ -9,7 +9,7 @@ env:
   AWS_REGION: me-central-1
   EKS_CLUSTER_NAME: EKS-test
   KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}  
-  ECR_REPOSITORY: flask-dev-repo  
+  ECR_REPOSITORY: flask-dev-repo
 
 permissions:
   contents: read
