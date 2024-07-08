@@ -32,15 +32,40 @@ jobs:
       run: terraform plan -out=tfplan
       working-directory: ./terraform
 
-    - name: Wait for Approval
-      if: github.event_name == 'workflow_dispatch'
-      run: echo "Waiting for manual approval to apply changes..."
+  wait-for-approval:
+    name: Wait for Approval
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Approval Step
+      id: approval
+      uses: chrnorm/deployment-approval-action@v1.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        environment: production
+        url: ${{ github.event.pull_request.html_url }}
+        timeout_minutes: 60
   
 
+  terraform-apply:
+    name: Terraform Apply
+    needs: wait-for-approval
+    runs-on: ubuntu-latest
+    if: needs.wait-for-approval.outputs.approved == 'true'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: me-central-1
+
     - name: Terraform Apply
-      if: github.event_name == 'workflow_dispatch'
       run: terraform apply -input=false tfplan
       working-directory: ./terraform
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
