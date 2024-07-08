@@ -34,7 +34,7 @@ jobs:
 
   wait-for-approval:
     name: Wait for Approval
-    needs: terraform-plan
+    needs: Terraform Plan
     runs-on: ubuntu-latest
     steps:
     - name: Approval Step
