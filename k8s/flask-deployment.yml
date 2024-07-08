@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app-deployment
+  labels:
+    app: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      nodeName: ip-10-0-2-201.me-central-1.compute.internal
+      containers:
+        - name: flask-app
+          image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+            
