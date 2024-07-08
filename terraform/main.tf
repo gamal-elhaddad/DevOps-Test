@@ -5,7 +5,7 @@ terraform {
     key = "terraform-state/state.tfstate"
     region = "me-central-1"
   }
-}
+} 
 
 provider "aws" {
   region = "me-central-1"
