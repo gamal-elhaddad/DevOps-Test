@@ -54,8 +54,6 @@ jobs:
     name: Terraform Apply
     needs: wait-for-approval
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.approved == 'true' }}
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
