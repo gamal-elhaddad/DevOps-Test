@@ -1,4 +1,4 @@
-name: Deploy to Amazon EKS ecom
+name: Deploy flask-app
 
 on:
   push:
@@ -78,7 +78,7 @@ jobs:
         aws-region: ${{ env.AWS_REGION }} 
 
     - name: Update kubeconfig
-      run: aws eks --region eu-central-1 update-kubeconfig --name EKS-test     
+      run: aws eks --region me-central-1 update-kubeconfig --name EKS-test   
 
     - name: Login to Amazon ECR    
       id: login-ecr
