@@ -151,17 +151,3 @@ resource "aws_security_group" "eks_cluster_sg" {
   vpc_id      = aws_vpc.eks_vpc.id
 }
 
-data "aws_eks_cluster_auth" "cluster" {
-  name = aws_eks_cluster.test.name
-}
-
-data "aws_eks_node_group" "test_nodes" {
-  for_each = aws_eks_node_group.test.node_groups
-
-  cluster_name    = aws_eks_cluster.test.name
-  node_group_name = each.value.node_group_name
-}
-
-output "eks_node_private_dns" {
-  value = values(data.aws_eks_node_group.test_nodes)[0].resources[0].private_dns
-}
