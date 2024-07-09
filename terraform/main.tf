@@ -2,21 +2,83 @@ terraform {
   required_version = ">=0.12"
   backend "s3" {
     bucket = "terraform-main-state-bucket"
-    key = "terraform-state/state.tfstate"
+    key    = "terraform-state/state.tfstate"
     region = "me-central-1"
   }
-} 
+}
 
 provider "aws" {
   region = "me-central-1"
 }
+
+resource "aws_vpc" "eks_vpc" {
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.eks_vpc.id
+}
+
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.eks_vpc.id
+  cidr_block              = "10.1.1.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  map_public_ip_on_launch = true
+}
+
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.eks_vpc.id
+}
+
+resource "aws_route" "public_route" {
+  route_table_id         = aws_route_table.public_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.igw.id
+}
+
+resource "aws_route_table_association" "public_association" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
+resource "aws_eip" "nat_eip" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "nat_gw" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public_subnet.id
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id            = aws_vpc.eks_vpc.id
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = data.aws_availability_zones.available.names[1]
+}
+
+resource "aws_route_table" "private_route_table" {
+  vpc_id = aws_vpc.eks_vpc.id
+}
+
+resource "aws_route" "private_route" {
+  route_table_id         = aws_route_table.private_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat_gw.id
+}
+
+resource "aws_route_table_association" "private_association" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.private_route_table.id
+}
+
+data "aws_availability_zones" "available" {}
 
 resource "aws_eks_cluster" "test" {
   name     = "test"
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
-    subnet_ids = aws_subnet.eks_subnet[*].id
+    subnet_ids = [aws_subnet.public_subnet.id, aws_subnet.private_subnet.id]
   }
 }
 
@@ -27,8 +89,8 @@ resource "aws_iam_role" "eks_cluster_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "eks.amazonaws.com"
         }
@@ -45,8 +107,8 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attachment" {
 resource "aws_eks_node_group" "test" {
   cluster_name    = aws_eks_cluster.test.name
   node_group_name = "test-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = aws_subnet.eks_subnet[*].id
+  node_role_arn   = "arn:aws:iam::084395075593:role/EKS-Worker_node-Role"
+  subnet_ids      = [aws_subnet.public_subnet.id, aws_subnet.private_subnet.id]
   scaling_config {
     desired_size = 1
     max_size     = 1
@@ -54,48 +116,37 @@ resource "aws_eks_node_group" "test" {
   }
 }
 
-resource "aws_iam_role" "eks_node_role" {
-  name = "eks_node_role"
+resource "aws_security_group" "eks_node_sg" {
+  name_prefix = "eks_node_sg"
+  description = "Security group for EKS nodes"
+  vpc_id      = aws_vpc.eks_vpc.id
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_vpc.eks_vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy_attachment" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+resource "aws_security_group_rule" "eks_node_cluster_ingress" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.eks_cluster_sg.id
+  security_group_id        = aws_security_group.eks_node_sg.id
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cni_policy_attachment" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+resource "aws_security_group" "eks_cluster_sg" {
+  name_prefix = "eks_cluster_sg"
+  description = "Security group for EKS cluster"
+  vpc_id      = aws_vpc.eks_vpc.id
 }
-
-resource "aws_iam_role_policy_attachment" "ec2_container_registry_policy_attachment" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_vpc" "eks_vpc" {
-  cidr_block = "10.0.0.0/16"
-}
-
-resource "aws_subnet" "eks_subnet" {
-  count                   = 2
-  vpc_id                  = aws_vpc.eks_vpc.id
-  cidr_block              = cidrsubnet(aws_vpc.eks_vpc.cidr_block, 8, count.index)
-  availability_zone       = element(data.aws_availability_zones.available.names, count.index)
-  map_public_ip_on_launch = true
-}
-
-data "aws_availability_zones" "available" {}
