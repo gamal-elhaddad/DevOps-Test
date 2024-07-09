@@ -95,8 +95,17 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
       shell: /usr/bin/bash -e {0}
+    - name: Get EKS Nodes
+      id: get-nodes
+      run: |
+        NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
+        echo "Node Name: $NODE_NAME"
+        echo "NODE_NAME=$NODE_NAME" >> $GITHUB_ENV
+      shell: bash
+  
     - name: Deploy to Kubernetes Cluster
       env:
+        NODE_NAME: ${{ steps.get-nodes.outputs.NODE_NAME }}
         AWS_REGION: me-central-1
         EKS_CLUSTER_NAME: EKS-test
         KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
@@ -106,8 +115,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         IMAGE_TAG: ${{ github.sha }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      run: |
-        NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')      
+      run: |  
         sed -i "s/nodeName:/nodeName:$NODE_NAME:/g" k8s/flask-deployment.yml
         cat k8s/flask-deployment.yml | envsubst | kubectl apply -f -
         cat k8s/flask-service.yml | envsubst | kubectl apply -f -
