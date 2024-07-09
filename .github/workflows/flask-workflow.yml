@@ -116,7 +116,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |  
-        sed -i "s/nodeName:/nodeName:$NODE_NAME:/g" k8s/flask-deployment.yml
+        sed -i "s/nodeName:/nodeName:$NODE_NAME/g" k8s/flask-deployment.yml
         cat k8s/flask-deployment.yml | envsubst | kubectl apply -f -
         cat k8s/flask-service.yml | envsubst | kubectl apply -f -
         cat k8s/flask-ingress.yml | envsubst | kubectl apply -f -
