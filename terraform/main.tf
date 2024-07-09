@@ -150,3 +150,7 @@ resource "aws_security_group" "eks_cluster_sg" {
   description = "Security group for EKS cluster"
   vpc_id      = aws_vpc.eks_vpc.id
 }
+
+output "eks_node_private_ip_dns" {
+  value = aws_instance.eks_node.private_dns
+}
