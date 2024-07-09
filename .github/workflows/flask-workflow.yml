@@ -112,7 +112,6 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
       shell: /usr/bin/bash -e {0}
-
     - name: Deploy to Kubernetes Cluster
       env:
         AWS_REGION: me-central-1
@@ -125,7 +124,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |
-         sed -i "s/nodeName:/nodeName:$NODE_PRIVATE_IP_DNS/g" k8s/flask-deployment.yml
+        sed -i "s/nodeName:/nodeName:$NODE_PRIVATE_IP_DNS/g" k8s/flask-deployment.yml
         cat k8s/flask-deployment.yml | envsubst | kubectl apply -f -
         cat k8s/flask-service.yml | envsubst | kubectl apply -f -
         cat k8s/flask-ingress.yml | envsubst | kubectl apply -f -

@@ -151,6 +151,6 @@ resource "aws_security_group" "eks_cluster_sg" {
   vpc_id      = aws_vpc.eks_vpc.id
 }
 
-output "eks_node_private_ip_dns" {
-  value = aws_instance.eks_node.private_dns
+output "eks_node_private_dns" {
+  value = aws_eks_node_group.test.node_groups[0].private_dns
 }
