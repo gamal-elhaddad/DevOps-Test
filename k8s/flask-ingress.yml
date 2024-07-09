@@ -17,7 +17,7 @@ spec:
           service:
             name: flask-service
             port:
-              number: 80   
+              number: 80     
   
 
                 
