@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: me-central-1
-  EKS_CLUSTER_NAME: EKS-test
+  EKS_CLUSTER_NAME: test
   KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}  
   ECR_REPOSITORY: flask-dev-repo  
 
@@ -16,23 +16,6 @@ permissions:
   contents: read
 
 jobs:
-  fetch-infra:
-    name: Fetch Infrastructure Details
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Fetch Cluster Info
-      id: cluster-info
-      run: |
-        echo "EKS_CLUSTER_NAME=$(terraform output -raw eks_cluster_name)" >> $GITHUB_ENV
-        echo "NODE_PRIVATE_IP_DNS=$(terraform output -raw eks_node_private_ip_dns)" >> $GITHUB_ENV
-      working-directory: ./terraform
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -124,7 +107,8 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |
-        sed -i "s/nodeName:/nodeName:$NODE_PRIVATE_IP_DNS/g" k8s/flask-deployment.yml
+        NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')      
+        sed -i "s/nodeName:/nodeName:$NODE_NAME:/g" k8s/flask-deployment.yml
         cat k8s/flask-deployment.yml | envsubst | kubectl apply -f -
         cat k8s/flask-service.yml | envsubst | kubectl apply -f -
         cat k8s/flask-ingress.yml | envsubst | kubectl apply -f -
