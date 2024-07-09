@@ -1,10 +1,7 @@
 name: Deploy flask-app
 
 on:
-  workflow_run:
-    workflows: ["EKS Cluster Creation"]
-    types:
-      - completed
+  workflow_dispatch:
 
 env:
   AWS_REGION: me-central-1
