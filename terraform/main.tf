@@ -94,11 +94,6 @@ resource "aws_eks_cluster" "test" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attachment" {
-  role       = data.aws_iam_role.eks_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
 resource "aws_eks_node_group" "test" {
   cluster_name    = aws_eks_cluster.test.name
   node_group_name = "test-node-group"
@@ -144,4 +139,3 @@ resource "aws_security_group" "eks_cluster_sg" {
   name_prefix = "eks_cluster_sg"
   description = "Security group for EKS cluster"
   vpc_id      = aws_vpc.eks_vpc.id
-}
