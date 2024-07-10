@@ -24,6 +24,10 @@ resource "aws_subnet" "public_subnet" {
   cidr_block              = "10.1.1.0/24"
   availability_zone       = data.aws_availability_zones.available.names[0]
   map_public_ip_on_launch = true
+
+  tags = {
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
 resource "aws_route_table" "public_route_table" {
@@ -54,6 +58,10 @@ resource "aws_subnet" "private_subnet" {
   vpc_id            = aws_vpc.eks_vpc.id
   cidr_block        = "10.1.2.0/24"
   availability_zone = data.aws_availability_zones.available.names[1]
+
+  tags = {
+    "kubernetes.io/role/internal-elb" = "1"
+  }
 }
 
 resource "aws_route_table" "private_route_table" {
@@ -150,4 +158,3 @@ resource "aws_security_group" "eks_cluster_sg" {
   description = "Security group for EKS cluster"
   vpc_id      = aws_vpc.eks_vpc.id
 }
-
