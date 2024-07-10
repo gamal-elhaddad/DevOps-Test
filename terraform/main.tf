@@ -81,34 +81,21 @@ resource "aws_route_table_association" "private_association" {
 
 data "aws_availability_zones" "available" {}
 
+data "aws_iam_role" "eks_role" {
+  name = "EKSRole"
+}
+
 resource "aws_eks_cluster" "test" {
   name     = "test"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = data.aws_iam_role.eks_role.arn
 
   vpc_config {
     subnet_ids = [aws_subnet.public_subnet.id, aws_subnet.private_subnet.id]
   }
 }
 
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks_cluster_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
-        Principal = {
-          Service = "eks.amazonaws.com"
-        }
-      },
-    ]
-  })
-}
-
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attachment" {
-  role       = aws_iam_role.eks_cluster_role.name
+  role       = data.aws_iam_role.eks_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
@@ -131,44 +118,30 @@ resource "aws_security_group" "eks_node_sg" {
 
   ingress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_vpc.eks_vpc.cidr_block]
   }
 
   egress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "eks_cluster_sg" {
-  name_prefix = "eks_cluster_sg"
-  description = "Security group for EKS cluster"
-  vpc_id      = aws_vpc.eks_vpc.id
-
-  ingress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 resource "aws_security_group_rule" "eks_node_cluster_ingress" {
   type                     = "ingress"
-  from_port                = 0
-  to_port                  = 65535
+  from_port                = 443
+  to_port                  = 443
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.eks_cluster_sg.id
   security_group_id        = aws_security_group.eks_node_sg.id
+}
+
+resource "aws_security_group" "eks_cluster_sg" {
+  name_prefix = "eks_cluster_sg"
+  description = "Security group for EKS cluster"
+  vpc_id      = aws_vpc.eks_vpc.id
 }
