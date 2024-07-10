@@ -79,5 +79,5 @@ jobs:
       run: |
         cat k8s/flask-deployment.yml | envsubst | kubectl apply -f -
         cat k8s/flask-service.yml | envsubst | kubectl apply -f - 
-        cat k8s/flask-ingress.yaml | envsubst | kubectl apply -f -
+        cat k8s/flask-ingress.yml | envsubst | kubectl apply -f -
         
