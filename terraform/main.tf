@@ -139,3 +139,4 @@ resource "aws_security_group" "eks_cluster_sg" {
   name_prefix = "eks_cluster_sg"
   description = "Security group for EKS cluster"
   vpc_id      = aws_vpc.eks_vpc.id
+}
