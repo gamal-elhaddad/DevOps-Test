@@ -85,7 +85,7 @@ data "aws_iam_role" "eks_role" {
   name = "EKSRole"
 }
 
-resource "aws_eks_cluster" "test" {
+resource "aws_eks_cluster" "EKS-test" {
   name     = "test"
   role_arn = data.aws_iam_role.eks_role.arn
 

@@ -1,8 +1,9 @@
 name: Deploy Flask App
 
 on:
-  workflow_dispatch:
-
+  push:
+    branches:
+      - main
 env:
   AWS_REGION: me-central-1
   EKS_CLUSTER_NAME: EKS-test
